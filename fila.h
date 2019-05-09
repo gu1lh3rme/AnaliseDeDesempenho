@@ -30,7 +30,7 @@ typedef struct pacote_{
     struct pacote_ * prox;
 }pacote;
 
-int insere(pacote *inicio, pacote *fim, double tamanho);
+int insere(pacote **inicio, pacote **fim, double tamanho);
 pacote *aloca_pct();
 
 #endif /* FILA_H */

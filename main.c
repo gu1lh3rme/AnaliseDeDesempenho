@@ -71,6 +71,15 @@ double minimo(double a, double b) {
 }
 
 int main(int argc, char** argv) {
+    pacote **inicio = malloc(sizeof(pacote *));
+    pacote **fim = malloc(sizeof(pacote *));
+    
+    insere(inicio, fim, 500);
+    insere(inicio, fim, 600);
+    insere(inicio, fim, 700);
+    insere(inicio, fim, 800);
+    insere(inicio, fim, 900);
+    
     //iniciando a semente para a geração
     //dos números pseudoaleatorios
     int semente = time(time(NULL));

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include <fila.h>
+#include "fila.h"
 
 
 pacote *aloca_pct(){
@@ -16,16 +16,16 @@ pacote *aloca_pct(){
  * @param tamanho tamanho do pacote a ser inserido
  * @return 1 caso insira, 0 caso erro
  */
-int insere(pacote *inicio, pacote *fim, double tamanho){
+int insere(pacote **inicio, pacote **fim, double tamanho){
    //fila vazia
-    if (inicio == NULL) {
-        inicio = aloca_pct();
-        if (inicio == NULL) {
+    if (*inicio == NULL) {
+        *inicio = aloca_pct();
+        if (*inicio == NULL) {
             return 0;
         }
-        fim = inicio;
-        inicio->tamanho = tamanho;
-        inicio->prox = NULL;
+        *fim = *inicio;
+        (*inicio)->tamanho = tamanho;
+        (*inicio)->prox = NULL;
         return 1;
     }else{
         pacote *tmp = aloca_pct();
@@ -35,8 +35,8 @@ int insere(pacote *inicio, pacote *fim, double tamanho){
         tmp->tamanho = tamanho;
         tmp->prox = NULL;
         
-        fim->prox = tmp;
-        fim = tmp;
+        (*fim)->prox = tmp;
+        (*fim) = tmp;
         return 1;
     }
 
