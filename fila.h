@@ -26,12 +26,14 @@ extern "C" {
 #endif
 
 typedef struct pacote_{
-    double tamanho;
-    struct pacote_ * prox;
+	double tamanho;
+	struct pacote_ * prox;
 }pacote;
 
-int insere(pacote **inicio, pacote **fim, double tamanho);
-pacote *aloca_pct();
+int inserir(pacote ** inicio, pacote ** fim, double tamanho);
+double remover(pacote ** inicio);
+pacote * aloca_pct();
+
 
 #endif /* FILA_H */
 

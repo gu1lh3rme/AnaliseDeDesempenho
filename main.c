@@ -71,19 +71,16 @@ double minimo(double a, double b) {
 }
 
 int main(int argc, char** argv) {
-    pacote **inicio = malloc(sizeof(pacote *));
-    pacote **fim = malloc(sizeof(pacote *));
-    
-    insere(inicio, fim, 500);
-    insere(inicio, fim, 600);
-    insere(inicio, fim, 700);
-    insere(inicio, fim, 800);
-    insere(inicio, fim, 900);
-    
+    pacote **inicio = malloc(sizeof (pacote *));
+    pacote **fim = malloc(sizeof (pacote *));
+    *inicio = NULL;
+    *fim = NULL;
+
     //iniciando a semente para a geração
     //dos números pseudoaleatorios
-    int semente = time(time(NULL));
-    srand(time(NULL));
+    int semente = 1556915527;
+    printf("Semente: %d\n", semente);
+    srand(semente);
     //tempo atual
     double tempo = 0.0;
     //tempo total
@@ -98,15 +95,15 @@ int main(int argc, char** argv) {
     //ajustando parametro para a exponencial
     intervalo = 1.0 / intervalo;
     //Contador de pacotes
-  //  double cont_pcts = 0.0;
+    //  double cont_pcts = 0.0;
 
     //Tam pacote gerado
     double tam_pct;
-/*
-    double cont_pct_550 = 0.0;
-    double cont_pct_40 = 0.0;
-    double cont_pct_1500 = 0.0;
-*/
+    /*
+        double cont_pct_550 = 0.0;
+        double cont_pct_40 = 0.0;
+        double cont_pct_1500 = 0.0;
+     */
 
     //Tamanho do link do roteador
     double link;
@@ -118,64 +115,82 @@ int main(int argc, char** argv) {
     //fila > 1 indica 1 pacote em transmissão e demais em espera
     double fila = 0.0;
 
-    //tempo de chegada do proximo pacote ao sistema
+    //tempo de chegada do proximo pacote
+    //ao sistema
     double chegada_proximo_pct = chegada_pct(intervalo);
+    //printf("Chegada do primeiro pacote: %lF\n", chegada_proximo_pct);
+    double chegada_proximo_pct_cbr;
+
     double saida_pct_atendimento = 0.0;
     double ocupacao = 0.0;
 
     while (tempo <= tempo_total) {
         //roteador vazio. Logo avanço no tempo de chegada do
         //proximo pacote
-        if (fila == 0.0) {
-            tempo = chegada_proximo_pct;
+        if (*inicio == NULL) {
+            tempo = minimo(chegada_proximo_pct, chegada_proximo_pct_cbr);
         } else {
             //Há fila!
-            tempo = minimo(chegada_proximo_pct, saida_pct_atendimento);
+            tempo = minimo(minimo(chegada_proximo_pct_cbr, chegada_proximo_pct), saida_pct_atendimento);
         }
 
         //chegada de pacote
         if (tempo == chegada_proximo_pct) {
             //roteador estava livre
-          //  printf("Chegada de pacote no tempo: %lF\n", tempo);
-            if (fila == 0.0) {
+            //  printf("Chegada de pacote no tempo: %lF\n", tempo);
+            tam_pct = gera_tam_pct();
+            if (*inicio == NULL) {
                 //descobrir o tamanho do pacote
-                tam_pct = gera_tam_pct();
                 //gerando o tempo em que o pacote atual sairá do sistema
                 saida_pct_atendimento = tempo + tam_pct / link;
-                
+
                 ocupacao += saida_pct_atendimento - tempo;
             }
             //pacote colocado na fila
-            fila++;
-           // printf("Fila: %lF\n", fila);
+            inserir(inicio, fim, tam_pct);
             //gerar o tempo de chegada do próximo
             chegada_proximo_pct = tempo + chegada_pct(intervalo);
-            
-        } else { //saida de pacote
-        //    printf("Saída de pacote no tempo: %lF\n", tempo);
-            fila--;
-       //     printf("Fila: %lF\n",fila);
-            if (fila > 0.0) {
-                // descobrir o tamanho do pacote
-                tam_pct = gera_tam_pct();
+
+        } else if (tempo == chegada_proximo_pct_cbr) {
+            //chega pct cbr 1200 bytes
+            tam_pct = (1200.0 * 8.0) / (1000000.0);
+            if (*inicio == NULL) {
+                //descobrir o tamanho do pacote
                 //gerando o tempo em que o pacote atual sairá do sistema
                 saida_pct_atendimento = tempo + tam_pct / link;
-                
+
+                ocupacao += saida_pct_atendimento - tempo;
+            }
+            //pacote colocado na fila
+            inserir(inicio, fim, tam_pct);
+            //gerar o tempo de chegada do próximo
+            chegada_proximo_pct_cbr += 0.02;
+        }
+        else { //saida de pacote
+            //    printf("Saída de pacote no tempo: %lF\n", tempo);
+            remover(inicio);
+
+            if (inicio != NULL) {
+                //Obtem o tamanho do pacote
+                tam_pct = (*inicio)->tamanho;
+                //gerando o tempo em que o pacote atual sairá do sistema
+                saida_pct_atendimento = tempo + tam_pct / link;
+
                 ocupacao += saida_pct_atendimento - tempo;
             }
         }
-      //  printf("===========================================\n\n");
-     //   getchar();
+        //  printf("===========================================\n\n");
+        //   getchar();
     }
-    
-    printf("Ocupacao: %lF\n", ocupacao/tempo);
-/*
-    printf("Pacotes gerados: %lF\n", cont_pcts);
-    printf("Media do intervalo: %lF\n", tempo / cont_pcts);
-    printf("Proporção de pacotes com tamanho 550: %lF\n", cont_pct_550 / cont_pcts);
-    printf("Proporção de pacotes com tamanho 40: %lF\n", cont_pct_40 / cont_pcts);
-    printf("Proporção de pacotes com tamanho 1500: %lF\n", cont_pct_1500 / cont_pcts);
-*/
+
+    printf("Ocupacao: %lF\n", ocupacao / tempo);
+    /*
+        printf("Pacotes gerados: %lF\n", cont_pcts);
+        printf("Media do intervalo: %lF\n", tempo / cont_pcts);
+        printf("Proporção de pacotes com tamanho 550: %lF\n", cont_pct_550 / cont_pcts);
+        printf("Proporção de pacotes com tamanho 40: %lF\n", cont_pct_40 / cont_pcts);
+        printf("Proporção de pacotes com tamanho 1500: %lF\n", cont_pct_1500 / cont_pcts);
+     */
     return (EXIT_SUCCESS);
 }
 
