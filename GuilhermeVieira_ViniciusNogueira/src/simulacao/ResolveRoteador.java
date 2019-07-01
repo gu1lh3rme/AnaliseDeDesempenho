@@ -74,7 +74,7 @@ public class ResolveRoteador {
 
     private Pacote proxPacote(List<Conexao> conexoes) {
         Pacote pct = new Pacote(null, null);
-        Conexao c = new Conexao(0.0, 0, 0.0, 0.0, 0);
+        Conexao c = new Conexao(0.0, 0.0, 0.0, 0.0, 0);
         double menorTempo = Double.MAX_VALUE;
         int posicao = -1;
 
@@ -112,7 +112,7 @@ public class ResolveRoteador {
         return (1.0 / result);
     }
     
-    public static double gera_intervalo_cbr(double minimo, double maximo) {
+    public double gera_intervalo_cbr(double minimo, double maximo) {
         Random random = new Random();
         return random.nextDouble() * (maximo - minimo) + minimo;
     }
@@ -168,12 +168,11 @@ public class ResolveRoteador {
         //System.out.println("Chegada do primeiro pacote: %lF\n", chegada_proximo_pct);
         double chegada_proximo_pct_cbr = gera_intervalo_cbr(0.01, 0.02);
         //Define a taxa de chegada da próxima conexao, duração e qtd pcts da conexão
-        double duracao_conexao = 12.0;
+        double duracao_conexao = 12;
         double chegada_proxima_conexao = chegada_proximo_pct_cbr;  //Primeira conexão começa quando o primeiro cbr chega
         double intervalo_conexao_cbr = 4;
-        //converte para int para não dar quantidade de pacotes decimais
-        int qtd_pcts_conexao = (int)(duracao_conexao / chegada_proximo_pct_cbr);
-
+        double qtd_pcts_conexao = duracao_conexao / chegada_proximo_pct_cbr;
+        double intervalo_cbr = chegada_proximo_pct_cbr;
         double saida_pct_atendimento = 0.0;
         double ocupacao = 0.0;
         int qtd_total_conexoes = 0;
@@ -197,12 +196,12 @@ public class ResolveRoteador {
             }
 
             if (tempo == chegada_proxima_conexao) {
-                //Se a fila de conexoes não estiver vazia gera o intervalo da nova conexão
-                if (!filaConexoes.isEmpty()) {
-                    chegada_proximo_pct_cbr = gera_intervalo_cbr(0.01, 0.02);
-                    qtd_pcts_conexao = (int)(duracao_conexao / chegada_proximo_pct_cbr);
-                }
                 qtd_total_conexoes++;
+                 //Se a fila de conexoes não estiver vazia gera o intervalo da nova conexão
+                if (!filaConexoes.isEmpty()) {
+                    intervalo_cbr = gera_intervalo_cbr(0.01, 0.02);
+                    qtd_pcts_conexao = (duracao_conexao / intervalo_cbr);
+                }
                 chegada_proxima_conexao += intervalo_conexao_cbr;
                 tam_pct = (1200.0 * 8.0) / (1000000.0);
                 filaConexoes.add(new Conexao(chegada_proximo_pct_cbr, qtd_pcts_conexao, duracao_conexao, tam_pct, tempo));
@@ -247,16 +246,19 @@ public class ResolveRoteador {
                     //descobrir o tamanho do pacote
                     //gerando o tempo em que o pacote atual sairá do sistema
                     saida_pct_atendimento = tempo + tam_pct / link;
+
                     ocupacao += saida_pct_atendimento - tempo;
                 }
 
                 //pacote colocado na fila
                 inicio = proxPacote(filaConexoes);
+                if (inicio == null) {
 
+                }
                 filaRoteador.add(inicio);
                 // inserir(inicio, fim, tam_pct);
                 //gerar o tempo de chegada do próximo
-               // chegada_proximo_pct_cbr += 0.02;
+                chegada_proximo_pct_cbr += intervalo_cbr;
 
                 //cálculo little  --- E[N]
                 en.soma_areas += en.qtd_pacotes * (tempo - en.tempo_anterior);
@@ -292,8 +294,6 @@ public class ResolveRoteador {
                 ew_saida.tempo_anterior = tempo;
 
             }
-            //  System.out.println("===========================================\n\n");
-            //   getchar();
         }
 
         ew_saida.soma_areas += ew_saida.qtd_pacotes * (tempo - ew_saida.tempo_anterior);
@@ -321,34 +321,5 @@ public class ResolveRoteador {
         }else{
             System.out.println("Bad simulation - ");
         }
-        /*
-            ew_out.sum += (tempo - ew_out.lastTime) * ew_out.qtdPk;
-        ew_in.sum += (tempo - ew_in.lastTime) * ew_in.qtdPk;
-	System.out.println("Ocupacao: "+ ocupacao / tempo);
-	System.out.println("Little: E[N] = "+ (en.sum / tempo));
-	System.out.println("Little: E[W] = "+ ((ew_in.sum - ew_out.sum) / ew_in.qtdPk));
-	System.out.println("Little: λ = "+ (ew_in.qtdPk / tempo));
-        double ll = ((ew_in.qtdPk / tempo) * ((ew_in.sum - ew_out.sum) / ew_in.qtdPk));
-        System.out.println("Little: little = "+ ll);
-        double eps = 0.03;
-        if (Math.abs(ll-(en.sum / tempo)) < eps){
-            System.out.println ("Good simulation");
-        }else{
-            System.out.println("Bad simulation - ");
-        }
-        */
-        
-        /*
-     Saída:
-    Semente: 1556915527
-    Informe o tempo total de simulação: 1000                    
-    Informe o intervalo médio de tempo (segundos) entre pacotes: 0.000441
-    Tamanho do link (Mbps): 10
-    Ocupacao: 0.847439
-
-===========little===============
-E[N] = 5.148129
-
-         */
     }
 }
