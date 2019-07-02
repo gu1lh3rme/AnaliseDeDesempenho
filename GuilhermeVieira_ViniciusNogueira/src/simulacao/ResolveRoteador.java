@@ -60,7 +60,7 @@ public class ResolveRoteador {
     }
 
     /**
-     *
+     * 
      * @param a
      * @param b
      * @return menor dentre os valores
