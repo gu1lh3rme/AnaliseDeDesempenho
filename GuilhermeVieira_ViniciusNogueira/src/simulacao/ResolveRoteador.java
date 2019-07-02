@@ -100,18 +100,18 @@ public class ResolveRoteador {
     }
 
     public double ocupacao_pct_Web(double tam, double link, double intervalo) {
-        return tam*intervalo / link;
+        return tam * intervalo / link;
     }
-    
+
     public double ocupacao_pct_Cbr(double tam, double link, double intervalo, double duracao) {
-        return (tam*intervalo / link)*(duracao/intervalo);
+        return (tam * intervalo / link) * (duracao / intervalo);
     }
 
     double intervaloPacote(double link, double ocupacao, double tamMedioPacote) {
         double result = (link * ocupacao) / tamMedioPacote;
         return (1.0 / result);
     }
-    
+
     public double gera_intervalo_cbr(double minimo, double maximo) {
         Random random = new Random();
         return random.nextDouble() * (maximo - minimo) + minimo;
@@ -137,13 +137,9 @@ public class ResolveRoteador {
         double tempo = 0.0;
         //tempo total
         double tempo_total = 10000.0;
-        //System.out.println("Informe o tempo total de simulação: ");
-        //scanf("%lF",  & tempo_total);
-        
+
         //intervalo médio entre pacotes
         double intervalo = intervaloPacote(1250000, 0.6, 441);  //0.000441
-        //System.out.println("Informe o intervalo médio de tempo (segundos) entre pacotes: ");
-        //scanf("%lF",  & intervalo);
         //ajustando parametro para a exponencial
         intervalo = 1.0 / intervalo;    //2267,573696145
         //Contador de pacotes
@@ -151,16 +147,9 @@ public class ResolveRoteador {
 
         //Tam pacote gerado
         double tam_pct;
-        /*
-        double cont_pct_550 = 0.0;
-        double cont_pct_40 = 0.0;
-        double cont_pct_1500 = 0.0;
-         */
 
         //Tamanho do link do roteador 1250000 ocupacao de 80%
         double link = 10.0;
-        //System.out.println("Tamanho do link (Mbps): ");
-        //scanf("%lF",  & link);
 
         //tempo de chegada do proximo pacote
         //ao sistema
@@ -177,18 +166,20 @@ public class ResolveRoteador {
         double ocupacao = 0.0;
         int qtd_total_conexoes = 0;
 
-        
         double ocweb = ocupacao_pct_Web(441, 1250000, intervalo);
         double ocCbr = ocupacao_pct_Cbr(1200, 1250000, chegada_proximo_pct_cbr, duracao_conexao);
         System.out.println("Ocupacao Web: " + ocweb);
         System.out.println("Ocupacao CBR: " + ocCbr);
-        System.out.println("Ocupação total: "+ (ocweb+ocCbr));
+        System.out.println("Ocupação total: " + (ocweb + ocCbr));
         System.out.println("\n#####################Simulação#######################");
+
+        ArrayList<Pacote> filaCbr = new ArrayList();
+        ArrayList<Pacote> filaWeb = new ArrayList();
 
         while (tempo <= tempo_total) {
             //roteador vazio. Logo avanço no tempo de chegada do
             //proximo pacote
-            if (filaRoteador.isEmpty()) {
+            if (filaWeb.isEmpty() && filaCbr.isEmpty()) {
                 tempo = minimo(chegada_proximo_pct, chegada_proximo_pct_cbr);
             } else {
                 //Há fila!
@@ -197,7 +188,7 @@ public class ResolveRoteador {
 
             if (tempo == chegada_proxima_conexao) {
                 qtd_total_conexoes++;
-                 //Se a fila de conexoes não estiver vazia gera o intervalo da nova conexão
+                //Se a fila de conexoes não estiver vazia gera o intervalo da nova conexão
                 if (!filaConexoes.isEmpty()) {
                     intervalo_cbr = gera_intervalo_cbr(0.01, 0.02);
                     qtd_pcts_conexao = (duracao_conexao / intervalo_cbr);
@@ -213,7 +204,7 @@ public class ResolveRoteador {
                 //  System.out.println("Chegada de pacote no tempo: %lF\n", tempo);
                 tam_pct = gera_tam_pct();
 
-                if (filaRoteador.isEmpty()) {
+                if (filaWeb.isEmpty()) {
 
                     //descobrir o tamanho do pacote
                     //gerando o tempo em que o pacote atual sairá do sistema
@@ -223,7 +214,8 @@ public class ResolveRoteador {
                 }
                 //pacote colocado na fila
                 inicio = new Pacote(tam_pct, tempo);
-                filaRoteador.add(inicio);
+                filaWeb.add(inicio);
+                //filaRoteador.add(inicio);
                 // inserir(inicio, fim, tam_pct);
                 //gerar o tempo de chegada do próximo
                 chegada_proximo_pct = tempo + chegada_pct(intervalo);
@@ -236,13 +228,13 @@ public class ResolveRoteador {
                 ew_chegada.soma_areas += ew_chegada.qtd_pacotes * (tempo - ew_chegada.tempo_anterior);
                 ew_chegada.qtd_pacotes++;
                 ew_chegada.tempo_anterior = tempo;
-                
+
                 //atualizar próxima conexão
             } else if (tempo == chegada_proximo_pct_cbr) {
                 //chega pct cbr 1200 bytes
                 tam_pct = (1200.0 * 8.0) / (1000000.0);
 
-                if (filaRoteador.isEmpty()) {
+                if (filaCbr.isEmpty()) {
                     //descobrir o tamanho do pacote
                     //gerando o tempo em que o pacote atual sairá do sistema
                     saida_pct_atendimento = tempo + tam_pct / link;
@@ -252,10 +244,9 @@ public class ResolveRoteador {
 
                 //pacote colocado na fila
                 inicio = proxPacote(filaConexoes);
-                if (inicio == null) {
 
-                }
-                filaRoteador.add(inicio);
+                //filaRoteador.add(inicio);
+                filaCbr.add(inicio);
                 // inserir(inicio, fim, tam_pct);
                 //gerar o tempo de chegada do próximo
                 chegada_proximo_pct_cbr += intervalo_cbr;
@@ -271,18 +262,57 @@ public class ResolveRoteador {
                 ew_chegada.tempo_anterior = tempo;
 
             } else { //saida de pacote
-                //    System.out.println("Saída de pacote no tempo: %lF\n", tempo);
-                //remover(inicio);
-                filaRoteador.remove(0);
+                //Remover da fila na proporção
+                //Se a fila web tiver vazia remove da cbr
+                if (filaWeb.isEmpty()) {
+                    filaCbr.remove(0);
+                    if (!filaCbr.isEmpty()) {
+                        tam_pct = filaCbr.get(0).tamanho;
+                        //gerando o tempo em que o pacote atual sairá do sistema
+                        saida_pct_atendimento = tempo + tam_pct / link;
 
-                if (!filaRoteador.isEmpty()) {
-                    //Obtem o tamanho do pacote
-                    tam_pct = filaRoteador.get(0).tamanho;
-                    //gerando o tempo em que o pacote atual sairá do sistema
-                    saida_pct_atendimento = tempo + tam_pct / link;
+                        ocupacao += saida_pct_atendimento - tempo;
+                    }
+                    //Se a fila cbr tiver vazia remove da web
+                } else if (filaCbr.isEmpty()) {
+                    filaWeb.remove(0);
+                    if (!filaWeb.isEmpty()) {
+                        tam_pct = filaWeb.get(0).tamanho;
+                        //gerando o tempo em que o pacote atual sairá do sistema
+                        saida_pct_atendimento = tempo + tam_pct / link;
 
-                    ocupacao += saida_pct_atendimento - tempo;
+                        ocupacao += saida_pct_atendimento - tempo;
+                    }
+                    //Se as duas filas não tiverem vazias verifica a proporção de atraso
+                } else {
+                    Pacote web, cbr;
+                    web = filaWeb.get(0);
+                    cbr = filaCbr.get(0);
+                    double atrasoWeb = tempo - web.tempo;
+                    double atrasoCbr = tempo - cbr.tempo;
+                    //Se o atraso cbr for metade do atraso web remove o cbr
+                    if (atrasoCbr <= atrasoWeb * 0.5) {
+                        filaCbr.remove(0);
+                        if (!filaCbr.isEmpty()) {
+                            tam_pct = filaCbr.get(0).tamanho;
+                            //gerando o tempo em que o pacote atual sairá do sistema
+                            saida_pct_atendimento = tempo + tam_pct / link;
+
+                            ocupacao += saida_pct_atendimento - tempo;
+                        }
+                        //Senão o atraso cbr é maior que a metade do atraso web
+                    } else {
+                        filaWeb.remove(0);
+                        if (!filaWeb.isEmpty()) {
+                            tam_pct = filaWeb.get(0).tamanho;
+                            //gerando o tempo em que o pacote atual sairá do sistema
+                            saida_pct_atendimento = tempo + tam_pct / link;
+
+                            ocupacao += saida_pct_atendimento - tempo;
+                        }
+                    }
                 }
+
                 //cálculo little -- E[N]
                 en.soma_areas += en.qtd_pacotes * (tempo - en.tempo_anterior);
                 en.qtd_pacotes--;
@@ -307,18 +337,18 @@ public class ResolveRoteador {
 
         System.out.println("Ocupacao: " + ocupacao / tempo);
         System.out.println("\n===========little===============");
-        System.out.printf("E[N] = %.15f\n",  en_final);
-        System.out.printf("E[W] = %.10f\n" , ew);
+        System.out.printf("E[N] = %.15f\n", en_final);
+        System.out.printf("E[W] = %.10f\n", ew);
         System.out.println("Lambda = " + lambda);
         System.out.println("\n=======================");
-        System.out.printf("Validação little λ: %.15f\n" , (en_final - (lambda * ew)));
+        System.out.printf("Validação little λ: %.15f\n", (en_final - (lambda * ew)));
         System.out.println("Quantidade de conexoes: " + qtd_total_conexoes);
         double ll = ((ew_chegada.qtd_pacotes / tempo) * ((ew_chegada.soma_areas - ew_saida.soma_areas) / ew_chegada.qtd_pacotes));
-        System.out.println("Little: little = "+ ll);
+        System.out.println("Little: little = " + ll);
         double eps = 0.03;
-        if (Math.abs(ll-(en.soma_areas / tempo)) < eps){
-            System.out.println ("Good simulation");
-        }else{
+        if (Math.abs(ll - (en.soma_areas / tempo)) < eps) {
+            System.out.println("Good simulation");
+        } else {
             System.out.println("Bad simulation - ");
         }
     }
