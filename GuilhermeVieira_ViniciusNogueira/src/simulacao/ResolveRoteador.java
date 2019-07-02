@@ -16,11 +16,14 @@ import java.util.Random;
  */
 public class ResolveRoteador {
 
-    Little en, ew_chegada, ew_saida;
+    private double tam_pct;
+    private double saida_pct_atendimento;
+    private double ocupacao;
+    private double link;
+    private Little en, ew_chegada, ew_saida;
 
     //Numero aleatorio entre 0 e 1
     public ResolveRoteador() {
-
     }
 
     private Random gerador;
@@ -60,7 +63,6 @@ public class ResolveRoteador {
     }
 
     /**
-     * 
      * @param a
      * @param b
      * @return menor dentre os valores
@@ -117,9 +119,18 @@ public class ResolveRoteador {
         return random.nextDouble() * (maximo - minimo) + minimo;
     }
 
+    private void saida_de_pacote(ArrayList<Pacote> fila, double tempo) {
+        if (!fila.isEmpty()) {
+            tam_pct = fila.get(0).tamanho;
+            //gerando o tempo em que o pacote atual sairá do sistema
+            saida_pct_atendimento = tempo + tam_pct / link;
+
+            ocupacao += saida_pct_atendimento - tempo;
+        }
+    }
+
     public void Resolve() {
         Pacote inicio;
-        ArrayList<Pacote> filaRoteador = new ArrayList();
         ArrayList<Conexao> filaConexoes = new ArrayList();
         //variavel para en
         this.en = new Little(0.0, 0.0, 0.0);
@@ -146,10 +157,10 @@ public class ResolveRoteador {
         //  double cont_pcts = 0.0;
 
         //Tam pacote gerado
-        double tam_pct;
+        tam_pct = 0.0;
 
         //Tamanho do link do roteador 1250000 ocupacao de 80%
-        double link = 10.0;
+        link = 10.0;
 
         //tempo de chegada do proximo pacote
         //ao sistema
@@ -162,8 +173,8 @@ public class ResolveRoteador {
         double intervalo_conexao_cbr = 4;
         double qtd_pcts_conexao = duracao_conexao / chegada_proximo_pct_cbr;
         double intervalo_cbr = chegada_proximo_pct_cbr;
-        double saida_pct_atendimento = 0.0;
-        double ocupacao = 0.0;
+        saida_pct_atendimento = 0.0;
+        ocupacao = 0.0;
         int qtd_total_conexoes = 0;
 
         double ocweb = ocupacao_pct_Web(441, 1250000, intervalo);
@@ -266,50 +277,25 @@ public class ResolveRoteador {
                 //Se a fila web tiver vazia remove da cbr
                 if (filaWeb.isEmpty()) {
                     filaCbr.remove(0);
-                    if (!filaCbr.isEmpty()) {
-                        tam_pct = filaCbr.get(0).tamanho;
-                        //gerando o tempo em que o pacote atual sairá do sistema
-                        saida_pct_atendimento = tempo + tam_pct / link;
-
-                        ocupacao += saida_pct_atendimento - tempo;
-                    }
-                    //Se a fila cbr tiver vazia remove da web
-                } else if (filaCbr.isEmpty()) {
+                    saida_de_pacote(filaCbr, tempo);
+                } 
+                else if (filaCbr.isEmpty()) { //Se a fila cbr tiver vazia remove da web
                     filaWeb.remove(0);
-                    if (!filaWeb.isEmpty()) {
-                        tam_pct = filaWeb.get(0).tamanho;
-                        //gerando o tempo em que o pacote atual sairá do sistema
-                        saida_pct_atendimento = tempo + tam_pct / link;
-
-                        ocupacao += saida_pct_atendimento - tempo;
-                    }
-                    //Se as duas filas não tiverem vazias verifica a proporção de atraso
-                } else {
+                    saida_de_pacote(filaWeb, tempo);
+                } 
+                else {  //Se as duas filas não tiverem vazias verifica a proporção de atraso
                     Pacote web, cbr;
                     web = filaWeb.get(0);
                     cbr = filaCbr.get(0);
                     double atrasoWeb = tempo - web.tempo;
                     double atrasoCbr = tempo - cbr.tempo;
-                    //Se o atraso cbr for metade do atraso web remove o cbr
-                    if (atrasoCbr <= atrasoWeb * 0.5) {
+                    if (atrasoCbr <= atrasoWeb * 0.5) { //Se o atraso cbr for metade do atraso web remove o cbr
                         filaCbr.remove(0);
-                        if (!filaCbr.isEmpty()) {
-                            tam_pct = filaCbr.get(0).tamanho;
-                            //gerando o tempo em que o pacote atual sairá do sistema
-                            saida_pct_atendimento = tempo + tam_pct / link;
-
-                            ocupacao += saida_pct_atendimento - tempo;
-                        }
-                        //Senão o atraso cbr é maior que a metade do atraso web
-                    } else {
+                        saida_de_pacote(filaCbr, tempo);
+                    } 
+                    else { //Senão o atraso cbr é maior que a metade do atraso web
                         filaWeb.remove(0);
-                        if (!filaWeb.isEmpty()) {
-                            tam_pct = filaWeb.get(0).tamanho;
-                            //gerando o tempo em que o pacote atual sairá do sistema
-                            saida_pct_atendimento = tempo + tam_pct / link;
-
-                            ocupacao += saida_pct_atendimento - tempo;
-                        }
+                        saida_de_pacote(filaWeb, tempo);
                     }
                 }
 
