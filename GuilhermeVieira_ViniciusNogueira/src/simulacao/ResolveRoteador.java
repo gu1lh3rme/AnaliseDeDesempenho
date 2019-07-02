@@ -155,11 +155,11 @@ public class ResolveRoteador {
         intervalo = 1.0 / intervalo;    //2267,573696145
         //Contador de pacotes
         //  double cont_pcts = 0.0;
-
+        
         //Tam pacote gerado
         tam_pct = 0.0;
 
-        //Tamanho do link do roteador 1250000 ocupacao de 80%
+        //Tamanho do link do roteador 1250000
         link = 10.0;
 
         //tempo de chegada do proximo pacote
@@ -170,7 +170,7 @@ public class ResolveRoteador {
         //Define a taxa de chegada da próxima conexao, duração e qtd pcts da conexão
         double duracao_conexao = 12;
         double chegada_proxima_conexao = chegada_proximo_pct_cbr;  //Primeira conexão começa quando o primeiro cbr chega
-        double intervalo_conexao_cbr = 4;
+       // double intervalo_conexao_cbr = chegada_pct(0.3);
         double qtd_pcts_conexao = duracao_conexao / chegada_proximo_pct_cbr;
         double intervalo_cbr = chegada_proximo_pct_cbr;
         saida_pct_atendimento = 0.0;
@@ -204,7 +204,7 @@ public class ResolveRoteador {
                     intervalo_cbr = gera_intervalo_cbr(0.01, 0.02);
                     qtd_pcts_conexao = (duracao_conexao / intervalo_cbr);
                 }
-                chegada_proxima_conexao += intervalo_conexao_cbr;
+                chegada_proxima_conexao = tempo + chegada_pct(0.3);
                 tam_pct = (1200.0 * 8.0) / (1000000.0);
                 filaConexoes.add(new Conexao(chegada_proximo_pct_cbr, qtd_pcts_conexao, duracao_conexao, tam_pct, tempo));
             }
@@ -278,12 +278,10 @@ public class ResolveRoteador {
                 if (filaWeb.isEmpty()) {
                     filaCbr.remove(0);
                     saida_de_pacote(filaCbr, tempo);
-                } 
-                else if (filaCbr.isEmpty()) { //Se a fila cbr tiver vazia remove da web
+                } else if (filaCbr.isEmpty()) { //Se a fila cbr tiver vazia remove da web
                     filaWeb.remove(0);
                     saida_de_pacote(filaWeb, tempo);
-                } 
-                else {  //Se as duas filas não tiverem vazias verifica a proporção de atraso
+                } else {  //Se as duas filas não tiverem vazias verifica a proporção de atraso
                     Pacote web, cbr;
                     web = filaWeb.get(0);
                     cbr = filaCbr.get(0);
@@ -292,8 +290,7 @@ public class ResolveRoteador {
                     if (atrasoCbr <= atrasoWeb * 0.5) { //Se o atraso cbr for metade do atraso web remove o cbr
                         filaCbr.remove(0);
                         saida_de_pacote(filaCbr, tempo);
-                    } 
-                    else { //Senão o atraso cbr é maior que a metade do atraso web
+                    } else { //Senão o atraso cbr é maior que a metade do atraso web
                         filaWeb.remove(0);
                         saida_de_pacote(filaWeb, tempo);
                     }
@@ -330,7 +327,7 @@ public class ResolveRoteador {
         System.out.printf("Validação little λ: %.15f\n", (en_final - (lambda * ew)));
         System.out.println("Quantidade de conexoes: " + qtd_total_conexoes);
         double ll = ((ew_chegada.qtd_pacotes / tempo) * ((ew_chegada.soma_areas - ew_saida.soma_areas) / ew_chegada.qtd_pacotes));
-        System.out.println("Little: little = " + ll);
+        System.out.println("Little: " + ll);
         double eps = 0.03;
         if (Math.abs(ll - (en.soma_areas / tempo)) < eps) {
             System.out.println("Good simulation");
