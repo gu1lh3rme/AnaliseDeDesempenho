@@ -20,7 +20,8 @@ public class ResolveRoteador {
     private double saida_pct_atendimento;
     private double ocupacao;
     private double link;
-    private Little en, ew_chegada, ew_saida;
+    private Little en_cbr, ew_chegada_cbr, ew_saida_cbr;
+    private Little en_web, ew_chegada_web, ew_saida_web;
 
     //Numero aleatorio entre 0 e 1
     public ResolveRoteador() {
@@ -133,11 +134,17 @@ public class ResolveRoteador {
         Pacote inicio;
         ArrayList<Conexao> filaConexoes = new ArrayList();
         //variavel para en
-        this.en = new Little(0.0, 0.0, 0.0);
+        this.en_cbr = new Little(0.0, 0.0, 0.0);
         //variável para ew chegada
-        this.ew_chegada = new Little(0.0, 0.0, 0.0);
+        this.ew_chegada_cbr = new Little(0.0, 0.0, 0.0);
         //variável para ew saída
-        this.ew_saida = new Little(0.0, 0.0, 0.0);
+        this.ew_saida_cbr = new Little(0.0, 0.0, 0.0);
+
+        this.en_web = new Little(0.0, 0.0, 0.0);
+        //variável para ew chegada
+        this.ew_chegada_web = new Little(0.0, 0.0, 0.0);
+        //variável para ew saída
+        this.ew_saida_web = new Little(0.0, 0.0, 0.0);
 
         //iniciando a semente para a geração
         //dos números pseudoaleatorios
@@ -155,7 +162,7 @@ public class ResolveRoteador {
         intervalo = 1.0 / intervalo;    //2267,573696145
         //Contador de pacotes
         //  double cont_pcts = 0.0;
-        
+
         //Tam pacote gerado
         tam_pct = 0.0;
 
@@ -170,7 +177,7 @@ public class ResolveRoteador {
         //Define a taxa de chegada da próxima conexao, duração e qtd pcts da conexão
         double duracao_conexao = 12;
         double chegada_proxima_conexao = chegada_proximo_pct_cbr;  //Primeira conexão começa quando o primeiro cbr chega
-       // double intervalo_conexao_cbr = chegada_pct(0.3);
+        // double intervalo_conexao_cbr = chegada_pct(0.3);
         double qtd_pcts_conexao = duracao_conexao / chegada_proximo_pct_cbr;
         double intervalo_cbr = chegada_proximo_pct_cbr;
         saida_pct_atendimento = 0.0;
@@ -186,7 +193,7 @@ public class ResolveRoteador {
 
         ArrayList<Pacote> filaCbr = new ArrayList();
         ArrayList<Pacote> filaWeb = new ArrayList();
-
+        
         while (tempo <= tempo_total) {
             //roteador vazio. Logo avanço no tempo de chegada do
             //proximo pacote
@@ -232,13 +239,13 @@ public class ResolveRoteador {
                 chegada_proximo_pct = tempo + chegada_pct(intervalo);
 
                 //cálculo little -- E[N]
-                en.soma_areas += en.qtd_pacotes * (tempo - en.tempo_anterior);
-                en.qtd_pacotes++;
-                en.tempo_anterior = tempo;
+                en_web.soma_areas += en_web.qtd_pacotes * (tempo - en_web.tempo_anterior);
+                en_web.qtd_pacotes++;
+                en_web.tempo_anterior = tempo;
 
-                ew_chegada.soma_areas += ew_chegada.qtd_pacotes * (tempo - ew_chegada.tempo_anterior);
-                ew_chegada.qtd_pacotes++;
-                ew_chegada.tempo_anterior = tempo;
+                ew_chegada_web.soma_areas += ew_chegada_web.qtd_pacotes * (tempo - ew_chegada_web.tempo_anterior);
+                ew_chegada_web.qtd_pacotes++;
+                ew_chegada_web.tempo_anterior = tempo;
 
                 //atualizar próxima conexão
             } else if (tempo == chegada_proximo_pct_cbr) {
@@ -263,24 +270,26 @@ public class ResolveRoteador {
                 chegada_proximo_pct_cbr += intervalo_cbr;
 
                 //cálculo little  --- E[N]
-                en.soma_areas += en.qtd_pacotes * (tempo - en.tempo_anterior);
-                en.qtd_pacotes++;
-                en.tempo_anterior = tempo;
+                en_cbr.soma_areas += en_cbr.qtd_pacotes * (tempo - en_cbr.tempo_anterior);
+                en_cbr.qtd_pacotes++;
+                en_cbr.tempo_anterior = tempo;
 
                 //cálculo little  --- E[W] chegada
-                ew_chegada.soma_areas += ew_chegada.qtd_pacotes * (tempo - ew_chegada.tempo_anterior);
-                ew_chegada.qtd_pacotes++;
-                ew_chegada.tempo_anterior = tempo;
+                ew_chegada_cbr.soma_areas += ew_chegada_cbr.qtd_pacotes * (tempo - ew_chegada_cbr.tempo_anterior);
+                ew_chegada_cbr.qtd_pacotes++;
+                ew_chegada_cbr.tempo_anterior = tempo;
 
             } else { //saida de pacote
                 //Remover da fila na proporção
                 //Se a fila web tiver vazia remove da cbr
+                boolean saida_web = false;
                 if (filaWeb.isEmpty()) {
                     filaCbr.remove(0);
                     saida_de_pacote(filaCbr, tempo);
                 } else if (filaCbr.isEmpty()) { //Se a fila cbr tiver vazia remove da web
                     filaWeb.remove(0);
                     saida_de_pacote(filaWeb, tempo);
+                    saida_web = true;
                 } else {  //Se as duas filas não tiverem vazias verifica a proporção de atraso
                     Pacote web, cbr;
                     web = filaWeb.get(0);
@@ -293,46 +302,87 @@ public class ResolveRoteador {
                     } else { //Senão o atraso cbr é maior que a metade do atraso web
                         filaWeb.remove(0);
                         saida_de_pacote(filaWeb, tempo);
+                        saida_web = true;
                     }
                 }
 
-                //cálculo little -- E[N]
-                en.soma_areas += en.qtd_pacotes * (tempo - en.tempo_anterior);
-                en.qtd_pacotes--;
-                en.tempo_anterior = tempo;
+                if (saida_web) {
+                    //cálculo little -- E[N]
+                    en_web.soma_areas += en_web.qtd_pacotes * (tempo - en_web.tempo_anterior);
+                    en_web.qtd_pacotes--;
+                    en_web.tempo_anterior = tempo;
 
-                //cálculo little  --- E[W] saída
-                ew_saida.soma_areas += ew_saida.qtd_pacotes * (tempo - ew_saida.tempo_anterior);
-                ew_saida.qtd_pacotes++;
-                ew_saida.tempo_anterior = tempo;
+                    //cálculo little  --- E[W] saída
+                    ew_saida_web.soma_areas += ew_saida_web.qtd_pacotes * (tempo - ew_saida_web.tempo_anterior);
+                    ew_saida_web.qtd_pacotes++;
+                    ew_saida_web.tempo_anterior = tempo;
+                } else {
+                   //cálculo little -- E[N]
+                    en_cbr.soma_areas += en_cbr.qtd_pacotes * (tempo - en_cbr.tempo_anterior);
+                    en_cbr.qtd_pacotes--;
+                    en_cbr.tempo_anterior = tempo;
 
+                    //cálculo little  --- E[W] saída
+                    ew_saida_cbr.soma_areas += ew_saida_web.qtd_pacotes * (tempo - ew_saida_cbr.tempo_anterior);
+                    ew_saida_cbr.qtd_pacotes++;
+                    ew_saida_cbr.tempo_anterior = tempo;         
+                }
             }
         }
 
-        ew_saida.soma_areas += ew_saida.qtd_pacotes * (tempo - ew_saida.tempo_anterior);
-        ew_chegada.soma_areas += ew_chegada.qtd_pacotes * (tempo - ew_chegada.tempo_anterior);
+        ew_saida_web.soma_areas += ew_saida_web.qtd_pacotes * (tempo - ew_saida_web.tempo_anterior);
+        ew_chegada_web.soma_areas += ew_chegada_web.qtd_pacotes * (tempo - ew_chegada_web.tempo_anterior);
 
-        double en_final = en.soma_areas / tempo;
-        double ew = ew_chegada.soma_areas - ew_saida.soma_areas;
-        ew = ew / ew_chegada.qtd_pacotes;
+        double en_final = en_web.soma_areas / tempo;
+        double ew = ew_chegada_web.soma_areas - ew_saida_web.soma_areas;
+        ew = ew / ew_chegada_web.qtd_pacotes;
 
-        double lambda = ew_chegada.qtd_pacotes / tempo;
-
+        
+        System.out.printf("Quantidades Pacotes total: %.0f\n", ew_chegada_cbr.qtd_pacotes + ew_chegada_web.qtd_pacotes);
+        
         System.out.println("Ocupacao: " + ocupacao / tempo);
-        System.out.println("\n===========little===============");
-        System.out.printf("E[N] = %.15f\n", en_final);
-        System.out.printf("E[W] = %.10f\n", ew);
-        System.out.println("Lambda = " + lambda);
-        System.out.println("\n=======================");
-        System.out.printf("Validação little λ: %.15f\n", (en_final - (lambda * ew)));
+        //Dados Web    
+        double lambda = ew_chegada_web.qtd_pacotes / tempo;
+        System.out.println("\n===========little Web===============");
+        System.out.printf("Quantidades de pacotes Cweb: %.0f\n",ew_chegada_web.qtd_pacotes);
+        System.out.printf("E[N] Web = %.15f\n", en_final);
+        System.out.printf("E[W] Web = %.10f\n", ew);
+        System.out.println("Lambda Web = " + lambda);
+        System.out.printf("\nValidação little λ: %.15f\n", (en_final - (lambda * ew)));
         System.out.println("Quantidade de conexoes: " + qtd_total_conexoes);
-        double ll = ((ew_chegada.qtd_pacotes / tempo) * ((ew_chegada.soma_areas - ew_saida.soma_areas) / ew_chegada.qtd_pacotes));
+        double ll = ((ew_chegada_web.qtd_pacotes / tempo) * ((ew_chegada_web.soma_areas - ew_saida_web.soma_areas) / ew_chegada_web.qtd_pacotes));
         System.out.println("Little: " + ll);
         double eps = 0.03;
-        if (Math.abs(ll - (en.soma_areas / tempo)) < eps) {
+        if (Math.abs(ll - (en_web.soma_areas / tempo)) < eps) {
             System.out.println("Good simulation");
         } else {
-            System.out.println("Bad simulation - ");
+            System.out.println("Bad simulation");
+        }        
+
+        //Dados Cbr
+        ew_saida_cbr.soma_areas += ew_saida_cbr.qtd_pacotes * (tempo - ew_saida_cbr.tempo_anterior);
+        ew_chegada_cbr.soma_areas += ew_chegada_cbr.qtd_pacotes * (tempo - ew_chegada_cbr.tempo_anterior);
+
+        en_final = en_cbr.soma_areas / tempo;
+        ew = ew_chegada_cbr.soma_areas - ew_saida_cbr.soma_areas;
+        ew = ew / ew_chegada_cbr.qtd_pacotes;
+
+        lambda = ew_chegada_cbr.qtd_pacotes / tempo;              
+        System.out.println("\n===========little Cbr===============");
+        System.out.printf("Quantidades de pacotes Cbr: %.0f\n",ew_chegada_cbr.qtd_pacotes);
+        System.out.printf("E[N] Cbr = %.15f\n", en_final);
+        System.out.printf("E[W] Cbr = %.10f\n", ew);
+        System.out.println("Lambda Cbr = " + lambda);
+        System.out.printf("\nValidação little λ: %.15f\n", (en_final - (lambda * ew)));
+        System.out.println("Quantidade de conexoes: " + qtd_total_conexoes);
+        ll = ((ew_chegada_cbr.qtd_pacotes / tempo) * ((ew_chegada_cbr.soma_areas - ew_saida_cbr.soma_areas) / ew_chegada_cbr.qtd_pacotes));
+        System.out.println("Little: " + ll);
+        eps = 0.03;
+        if (Math.abs(ll - (en_cbr.soma_areas / tempo)) < eps) {
+            System.out.println("Good simulation");
+        } else {
+            System.out.println("Bad simulation");
         }
+        System.out.println("\n#####################Fim Simulação#######################\n");
     }
 }
