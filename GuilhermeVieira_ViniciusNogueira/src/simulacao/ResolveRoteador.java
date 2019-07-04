@@ -106,8 +106,11 @@ public class ResolveRoteador {
         return tam * intervalo / link;
     }
 
-    public double ocupacao_pct_Cbr(double tam, double link, double intervalo, double duracao) {
-        return (tam * intervalo / link) * (duracao / intervalo);
+    public double ocupacao_pct_Cbr(double tam, double link, double chegada_proximo_pct_cbr, double duracao, double intervalo_conexao_cbr) {
+        //return (tam * intervalo / link) * (duracao / intervalo);
+//        return (tam * chegada_proximo_pct_cbr / link) * (duracao / intervalo_conexao_cbr);
+//        return (tam / (link * chegada_proximo_pct_cbr)) * (duracao / intervalo_conexao_cbr);
+        return (duracao * tam) / link * chegada_proximo_pct_cbr * intervalo_conexao_cbr;
     }
 
     double intervaloPacote(double link, double ocupacao, double tamMedioPacote) {
@@ -160,9 +163,7 @@ public class ResolveRoteador {
         double intervalo = intervaloPacote(1250000, 0.6, 441);  //0.000441
         //ajustando parametro para a exponencial
         intervalo = 1.0 / intervalo;    //2267,573696145
-        //Contador de pacotes
-        //  double cont_pcts = 0.0;
-
+             
         //Tam pacote gerado
         tam_pct = 0.0;
 
@@ -185,7 +186,8 @@ public class ResolveRoteador {
         int qtd_total_conexoes = 0;
 
         double ocweb = ocupacao_pct_Web(441, 1250000, intervalo);
-        double ocCbr = ocupacao_pct_Cbr(1200, 1250000, chegada_proximo_pct_cbr, duracao_conexao);
+//        double ocCbr = ocupacao_pct_Cbr(1200, 1250000, chegada_proximo_pct_cbr, duracao_conexao);
+        double ocCbr = ocupacao_pct_Cbr((1200.0 * 8.0) / (1000000.0), 10, chegada_proximo_pct_cbr, tempo_total, chegada_pct(0.3));
         System.out.println("Ocupacao Web: " + ocweb);
         System.out.println("Ocupacao CBR: " + ocCbr);
         System.out.println("Ocupação total: " + (ocweb + ocCbr));
@@ -193,7 +195,7 @@ public class ResolveRoteador {
 
         ArrayList<Pacote> filaCbr = new ArrayList();
         ArrayList<Pacote> filaWeb = new ArrayList();
-        
+
         while (tempo <= tempo_total) {
             //roteador vazio. Logo avanço no tempo de chegada do
             //proximo pacote
@@ -317,7 +319,7 @@ public class ResolveRoteador {
                     ew_saida_web.qtd_pacotes++;
                     ew_saida_web.tempo_anterior = tempo;
                 } else {
-                   //cálculo little -- E[N]
+                    //cálculo little -- E[N]
                     en_cbr.soma_areas += en_cbr.qtd_pacotes * (tempo - en_cbr.tempo_anterior);
                     en_cbr.qtd_pacotes--;
                     en_cbr.tempo_anterior = tempo;
@@ -325,31 +327,29 @@ public class ResolveRoteador {
                     //cálculo little  --- E[W] saída
                     ew_saida_cbr.soma_areas += ew_saida_web.qtd_pacotes * (tempo - ew_saida_cbr.tempo_anterior);
                     ew_saida_cbr.qtd_pacotes++;
-                    ew_saida_cbr.tempo_anterior = tempo;         
+                    ew_saida_cbr.tempo_anterior = tempo;
                 }
             }
         }
 
+        System.out.printf("Quantidades pacotes total: %.0f\n", ew_chegada_cbr.qtd_pacotes + ew_chegada_web.qtd_pacotes);
+        System.out.println("Ocupação: " + ocupacao / tempo);
+        
+        //Dados Web
         ew_saida_web.soma_areas += ew_saida_web.qtd_pacotes * (tempo - ew_saida_web.tempo_anterior);
         ew_chegada_web.soma_areas += ew_chegada_web.qtd_pacotes * (tempo - ew_chegada_web.tempo_anterior);
 
         double en_final = en_web.soma_areas / tempo;
         double ew = ew_chegada_web.soma_areas - ew_saida_web.soma_areas;
         ew = ew / ew_chegada_web.qtd_pacotes;
-
-        
-        System.out.printf("Quantidades Pacotes total: %.0f\n", ew_chegada_cbr.qtd_pacotes + ew_chegada_web.qtd_pacotes);
-        
-        System.out.println("Ocupacao: " + ocupacao / tempo);
-        //Dados Web    
+            
         double lambda = ew_chegada_web.qtd_pacotes / tempo;
         System.out.println("\n===========little Web===============");
-        System.out.printf("Quantidades de pacotes Cweb: %.0f\n",ew_chegada_web.qtd_pacotes);
+        System.out.printf("Quantidades de pacotes Web: %.0f\n", ew_chegada_web.qtd_pacotes);
         System.out.printf("E[N] Web = %.15f\n", en_final);
         System.out.printf("E[W] Web = %.10f\n", ew);
         System.out.println("Lambda Web = " + lambda);
         System.out.printf("\nValidação little λ: %.15f\n", (en_final - (lambda * ew)));
-        System.out.println("Quantidade de conexoes: " + qtd_total_conexoes);
         double ll = ((ew_chegada_web.qtd_pacotes / tempo) * ((ew_chegada_web.soma_areas - ew_saida_web.soma_areas) / ew_chegada_web.qtd_pacotes));
         System.out.println("Little: " + ll);
         double eps = 0.03;
@@ -357,7 +357,7 @@ public class ResolveRoteador {
             System.out.println("Good simulation");
         } else {
             System.out.println("Bad simulation");
-        }        
+        }
 
         //Dados Cbr
         ew_saida_cbr.soma_areas += ew_saida_cbr.qtd_pacotes * (tempo - ew_saida_cbr.tempo_anterior);
@@ -367,14 +367,13 @@ public class ResolveRoteador {
         ew = ew_chegada_cbr.soma_areas - ew_saida_cbr.soma_areas;
         ew = ew / ew_chegada_cbr.qtd_pacotes;
 
-        lambda = ew_chegada_cbr.qtd_pacotes / tempo;              
+        lambda = ew_chegada_cbr.qtd_pacotes / tempo;
         System.out.println("\n===========little Cbr===============");
-        System.out.printf("Quantidades de pacotes Cbr: %.0f\n",ew_chegada_cbr.qtd_pacotes);
+        System.out.printf("Quantidades de pacotes Cbr: %.0f\n", ew_chegada_cbr.qtd_pacotes);
         System.out.printf("E[N] Cbr = %.15f\n", en_final);
         System.out.printf("E[W] Cbr = %.10f\n", ew);
         System.out.println("Lambda Cbr = " + lambda);
         System.out.printf("\nValidação little λ: %.15f\n", (en_final - (lambda * ew)));
-        System.out.println("Quantidade de conexoes: " + qtd_total_conexoes);
         ll = ((ew_chegada_cbr.qtd_pacotes / tempo) * ((ew_chegada_cbr.soma_areas - ew_saida_cbr.soma_areas) / ew_chegada_cbr.qtd_pacotes));
         System.out.println("Little: " + ll);
         eps = 0.03;
@@ -383,6 +382,8 @@ public class ResolveRoteador {
         } else {
             System.out.println("Bad simulation");
         }
+        
+        System.out.println("Quantidade de conexoes: " + qtd_total_conexoes);
         System.out.println("\n#####################Fim Simulação#######################\n");
     }
 }
